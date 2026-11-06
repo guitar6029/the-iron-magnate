@@ -6,7 +6,7 @@
 <p align="center"><em>Fortune is forged.</em></p>
 <p align="center"><strong>Planned desktop-first, single-player Victorian / steampunk industrial tycoon.</strong></p>
 
-> **Status: v0 planning / architecture transition.** This repository currently contains an older ASP.NET Core warehouse-device API prototype. It is **not yet** a playable Godot game. The legacy API, database migrations, Docker tooling, and seeding will be audited before any removal. See the [v0 Linear project](https://linear.app/josh-soll/project/the-iron-magnate-2b4d7ae57455).
+> **Status: v0 planning / architecture transition.** The former warehouse-device API prototype has been removed in favor of a clean simulation-core foundation. This is **not yet** a playable Godot game. See the [v0 Linear project](https://linear.app/josh-soll/project/the-iron-magnate-2b4d7ae57455).
 
 ## The vision
 
@@ -42,7 +42,7 @@ A 3D angled presentation or a marketing website might be explored in the future,
 
 ## Development milestones
 
-1. **Foundation & cleanup:** Audit the existing warehouse-telemetry prototype; establish a clean .NET core and Godot integration without blindly deleting reusable code.
+1. **Foundation & cleanup:** Audit the existing warehouse-telemetry prototype; establish a clean .NET core before introducing Godot integration.
 2. **Headless factory:** Test the clock, materials, production, energy, staffing, sales, daily summary, and exact snapshot restoration in C# before relying on visual presentation.
 3. **First playable Godot scene:** Display the factory, resource bar, machinery controls, clock, buying and selling actions, and day summary using placeholders.
 4. **Victorian visual polish:** Gradually replace placeholders with purpose-made 2D assets, decorative corners, animated clockwork and sound.
@@ -57,7 +57,17 @@ Multiple production lines, components combined into devices and drones, research
 
 ## Development / contributing
 
-This project is currently **in transition**. The current main branch still uses an older ASP.NET Core Web API architecture (with PostgreSQL / EF Core / Docker) and does **not** yet offer a supported Godot run command. Setup, build and test instructions will be documented once the foundation milestone establishes the actual solution layout.
+This project currently contains the dependency-free simulation-core project at `src/IronMagnate.Core`. It does not yet contain simulation behavior, tests, a Godot project, or a supported game run command.
+
+Prerequisite: [.NET SDK 10](https://dotnet.microsoft.com/download/dotnet/10.0).
+
+```sh
+dotnet restore TheIronMagnate.sln
+dotnet build TheIronMagnate.sln --no-restore
+dotnet test TheIronMagnate.sln --no-build
+```
+
+Godot integration will be added alongside the core only when the first playable presentation work begins.
 
 For current planning and technical cleanup, see the [Iron Magnate Linear project](https://linear.app/josh-soll/project/the-iron-magnate-2b4d7ae57455).
 
