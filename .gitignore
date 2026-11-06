@@ -6,6 +6,10 @@
 # dotenv files
 .env
 
+# Godot generated editor and import cache. Keep project.godot and source assets.
+.godot/
+.import/
+
 # User-specific files
 *.rsuser
 *.suo

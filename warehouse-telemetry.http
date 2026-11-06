@@ -1,6 +1,0 @@
-@warehouse_telemetry_HostAddress = http://localhost:5073
-
-GET {{warehouse_telemetry_HostAddress}}/weatherforecast/
-Accept: application/json
-
-###
