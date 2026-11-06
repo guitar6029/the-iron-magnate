@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 340" role="img" aria-labelledby="title desc">
+<title id="title">The Iron Magnate</title>
+<desc id="desc">Victorian industrial title banner with antique gold filigree, a clockwork gear, and a dark iron background.</desc>
+<defs>
+<linearGradient id="bg" x2="0" y2="1"><stop stop-color="#151515"/><stop offset="1" stop-color="#35271d"/></linearGradient>
+<linearGradient id="gold" x2="0" y2="1"><stop stop-color="#f4dba0"/><stop offset=".48" stop-color="#c99851"/><stop offset="1" stop-color="#82603a"/></linearGradient>
+<pattern id="grain" width="14" height="14" patternUnits="userSpaceOnUse"><circle cx="2" cy="2" r=".65" fill="#a78551" opacity=".21"/></pattern>
+<g id="corner" fill="none" stroke="url(#gold)" stroke-linecap="round">
+<path d="M22 113 V22 H165 M33 93 Q32 32 91 33 Q142 34 117 76 Q102 96 85 74 Q74 58 91 51 M45 70 Q71 67 63 44" stroke-width="3"/>
+<path d="M36 119 C59 90 84 98 87 118 C92 146 55 147 61 125 M89 23 C109 45 147 47 159 29 C168 12 189 25 174 43 C166 53 150 44 153 38" stroke-width="2"/>
+<path d="M34 35 Q52 55 72 37 M97 59 Q119 77 141 56 M50 95 Q29 123 48 144" stroke-width="1.6"/>
+<circle cx="71" cy="72" r="3" fill="#d8ae6f"/><circle cx="125" cy="35" r="3" fill="#d8ae6f"/>
+</g>
+<g id="gear" fill="none" stroke="#ba8e55" stroke-width="3"><circle r="30"/><circle r="13"/><path d="M-10-42 H10 L14-31 H-14 Z M-10 42 H10 L14 31 H-14 Z M-42-10 V10 L-31 14 V-14 Z M42-10 V10 L31 14 V-14 Z M-35-35 L-21-21 M35 35 L21 21 M35-35 L21-21 M-35 35 L-21 21"/></g>
+</defs>
+<rect width="1200" height="340" fill="url(#bg)"/>
+<rect width="1200" height="340" fill="url(#grain)"/>
+<rect x="13" y="13" width="1174" height="314" rx="3" fill="none" stroke="#8f6738" stroke-width="2"/>
+<rect x="22" y="22" width="1156" height="296" rx="2" fill="none" stroke="#b78c54" stroke-width=".8"/>
+<use href="#corner"/><use href="#corner" transform="translate(1200 0) scale(-1 1)"/><use href="#corner" transform="translate(0 340) scale(1 -1)"/><use href="#corner" transform="translate(1200 340) scale(-1 -1)"/>
+<path d="M295 103 H490 M710 103 H905 M280 261 H510 M690 261 H920" stroke="#91673b" stroke-width="1.5"/>
+<use href="#gear" transform="translate(600 102) scale(.68)"/>
+<text x="600" y="201" text-anchor="middle" fill="url(#gold)" stroke="#362417" stroke-width="1" paint-order="stroke" font-family="Georgia, 'Times New Roman', serif" font-size="65" font-weight="bold" letter-spacing="5">THE IRON MAGNATE</text>
+<text x="600" y="243" text-anchor="middle" fill="#dbbe89" font-family="Georgia, 'Times New Roman', serif" font-style="italic" font-size="21" letter-spacing="3">A Victorian Industrial Tycoon Simulator</text>
+<text x="600" y="289" text-anchor="middle" fill="#a58355" font-family="Georgia, 'Times New Roman', serif" font-size="14" letter-spacing="5">FORTUNE IS FORGED</text>
+</svg>
