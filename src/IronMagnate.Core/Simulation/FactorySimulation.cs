@@ -45,7 +45,9 @@ public class FactorySimulation
     {
 
         double simulatedMinutes = Clock.Advance(elapsedSeconds);
-        Boiler.Advance(simulatedMinutes);
+        // Machinery is not implemented yet, so an enabled boiler can only be in standby.
+        // Production will explicitly request BoilerConsumptionMode.Operating for powered work.
+        Boiler.Advance(simulatedMinutes, BoilerConsumptionMode.Standby);
 
         return simulatedMinutes;
 
@@ -54,7 +56,7 @@ public class FactorySimulation
     private static SupplyStorage CreateStarterCoalYard()
     {
         var coalYard = new SupplyStorage(StorageType.Fuel, 300, [ResourceCategory.Fuel]);
-        coalYard.Deliver(CoalBoiler.Coal, 200);
+        coalYard.Deliver(CoalBoiler.FuelType, 200);
         return coalYard;
     }
 }

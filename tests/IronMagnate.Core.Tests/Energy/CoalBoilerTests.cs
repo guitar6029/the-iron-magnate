@@ -52,7 +52,7 @@ public class CoalBoilerTests
     public void CannotTurnOnWithoutCoalAndAddingCoalDoesNotRestartIt()
     {
         var boiler = PoweredBoiler();
-        boiler.Advance(12000);
+        boiler.Advance(12000, BoilerConsumptionMode.Standby);
 
         boiler.TurnOn();
         boiler.AddCoal(10);
@@ -129,7 +129,7 @@ public class CoalBoilerTests
     {
         var boiler = new CoalBoiler();
 
-        var poweredMinutes = boiler.Advance(10);
+        var poweredMinutes = boiler.Advance(10, BoilerConsumptionMode.Standby);
 
         Assert.Equal(0, poweredMinutes);
         Assert.Equal(200, boiler.CurrentCoalSupply);
@@ -140,7 +140,7 @@ public class CoalBoilerTests
     {
         var boiler = PoweredBoiler();
 
-        var poweredMinutes = boiler.Advance(60);
+        var poweredMinutes = boiler.Advance(60, BoilerConsumptionMode.Standby);
 
         Assert.Equal(60, poweredMinutes);
         Assert.Equal(199, boiler.CurrentCoalSupply);
@@ -151,7 +151,7 @@ public class CoalBoilerTests
     {
         var boiler = PoweredBoiler();
 
-        var poweredMinutes = boiler.Advance(0.25);
+        var poweredMinutes = boiler.Advance(0.25, BoilerConsumptionMode.Standby);
 
         Assert.Equal(0.25, poweredMinutes);
         Assert.Equal(199.9958333333, boiler.CurrentCoalSupply, 10);
@@ -162,7 +162,7 @@ public class CoalBoilerTests
     {
         var boiler = PoweredBoiler();
 
-        var poweredMinutes = boiler.Advance(0);
+        var poweredMinutes = boiler.Advance(0, BoilerConsumptionMode.Standby);
 
         Assert.Equal(0, poweredMinutes);
         Assert.Equal(200, boiler.CurrentCoalSupply);
@@ -174,12 +174,12 @@ public class CoalBoilerTests
     {
         var boiler = PoweredBoiler();
 
-        var poweredMinutes = boiler.Advance(12075);
+        var poweredMinutes = boiler.Advance(12075, BoilerConsumptionMode.Standby);
 
         Assert.Equal(12000, poweredMinutes);
         Assert.Equal(0, boiler.CurrentCoalSupply);
         Assert.False(boiler.IsPoweredOn);
-        Assert.Equal(0, boiler.Advance(1));
+        Assert.Equal(0, boiler.Advance(1, BoilerConsumptionMode.Standby));
     }
 
     [Fact]
@@ -187,7 +187,7 @@ public class CoalBoilerTests
     {
         var boiler = PoweredBoiler();
 
-        var poweredMinutes = boiler.Advance(1);
+        var poweredMinutes = boiler.Advance(1, BoilerConsumptionMode.Standby);
 
         Assert.InRange(poweredMinutes, 0, 1);
         Assert.True(boiler.CurrentCoalSupply >= 0);
@@ -202,7 +202,7 @@ public class CoalBoilerTests
     {
         var boiler = PoweredBoiler();
 
-        Assert.Throws<ArgumentOutOfRangeException>(() => boiler.Advance(simulatedMinutes));
+        Assert.Throws<ArgumentOutOfRangeException>(() => boiler.Advance(simulatedMinutes, BoilerConsumptionMode.Standby));
 
         Assert.Equal(200, boiler.CurrentCoalSupply);
         Assert.True(boiler.IsPoweredOn);
@@ -220,10 +220,22 @@ public class CoalBoilerTests
     {
         var boiler = PoweredBoiler();
 
-        var poweredMinutes = boiler.Advance(60, isOperating: true);
+        var poweredMinutes = boiler.Advance(60, BoilerConsumptionMode.Operating);
 
         Assert.Equal(60, poweredMinutes);
         Assert.Equal(196, boiler.CurrentCoalSupply);
+    }
+
+    [Fact]
+    public void AdvanceRejectsAnUndefinedConsumptionMode()
+    {
+        var boiler = PoweredBoiler();
+
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            boiler.Advance(1, (BoilerConsumptionMode)99));
+
+        Assert.Equal(200, boiler.CurrentCoalSupply);
+        Assert.True(boiler.IsPoweredOn);
     }
 
     [Fact]
@@ -232,10 +244,10 @@ public class CoalBoilerTests
         var singleTickBoiler = PoweredBoiler();
         var manyTickBoiler = PoweredBoiler();
 
-        singleTickBoiler.Advance(60);
+        singleTickBoiler.Advance(60, BoilerConsumptionMode.Standby);
         for (var minute = 0; minute < 60; minute++)
         {
-            manyTickBoiler.Advance(1);
+            manyTickBoiler.Advance(1, BoilerConsumptionMode.Standby);
         }
 
         Assert.Equal(singleTickBoiler.CurrentCoalSupply, manyTickBoiler.CurrentCoalSupply, 10);

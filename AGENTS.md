@@ -17,7 +17,7 @@ The Iron Magnate is a **desktop-first, single-player Victorian/steampunk industr
 The authoritative simulation lives in `src/IronMagnate.Core`, **independent of Godot, UI, file storage implementation, HTTP, databases, networking, and real-world timers**.
 
 - **Simulation / coordination:** controls game-time advancement, stable ordering of resource requests, day lifecycle, and cross-domain operations. It should **coordinate** rather than absorb every domain's business rules.
-- **Supply / inventory:** owns raw materials, manufactured parts, available quantities, total storage, output reservations, and consumption/production inventory changes.
+- **Supply / inventory:** owns raw materials, manufactured parts, available quantities, the three storage facilities, output reservations, and consumption/production inventory changes. Storage behavior is shared through composition, while each facility accepts only its permitted resource categories.
 - **Energy:** owns fuel, sources, power availability, and powered-time calculation; machinery must not directly manipulate boiler fuel.
 - **Workforce:** owns hired workers, idle pool, assignments, and crew eligibility; Economy owns the resulting payables.
 - **Machinery / production:** owns equipment eligibility, selected known recipe, workpiece progress/state, and completed outputs. An assembly station is a type of production equipment; assembly is **optional**.
@@ -34,11 +34,11 @@ Keep immutable **schematic/item/equipment definitions** separate from mutable in
 - Stable, deterministic machine request order is adequate in v0. Never allow duplicated material allocations, workers, or output reservations.
 
 ### Starter factory, materials and machines
-- Intended starter scenario: **one worn central coal boiler, one basic production machine, one tiny assembly station**, a small interchangeable workforce, simple known schematics, starter raw stock/fuel, central supply capacity, and enough starting Crowns for a feasible first manufacturing-and-sale loop. No starting drones.
+- Intended starter scenario: **one worn central coal boiler, one basic production machine, one tiny assembly station**, a small interchangeable workforce, simple known schematics, starter raw stock/fuel, and enough starting Crowns for a feasible first manufacturing-and-sale loop. Storage is split into a 500-slot Raw Supply Warehouse, a 250-slot Parts & Products Warehouse, and a 300-slot Coal Yard that starts with 200 coal. No starting drones.
 - **Production is an item transformation:** raw goods → machine → optional assembly → finished item; equipment may directly manufacture a sellable item. An assembly may use existing inventory parts as inputs. Each product/item is storable and can be used in a later recipe.
 - A schematic specifies input/output items and quantities, processing duration, and compatible equipment; equipment also has crew/energy requirements. The active known recipe runs **continuously** while eligible, not a mandatory finite-quantity production order.
 - Before starting each workpiece, validate all required eligibility conditions, **commit inputs once**, and reserve the full output capacity. On completion, convert the output reservation into occupied inventory. If start fails, do not consume materials or leave orphan reservations.
-- **Every physical inventory unit occupies exactly one central storage slot**, regardless of type or size. `available capacity = capacity - occupied - reserved`. Output reservations are exclusive and persist with unfinished workpieces; storage can be expanded with simple purchased capacity.
+- **Every physical inventory unit occupies exactly one storage slot** in its compatible facility, regardless of type or size. Each facility's `available capacity = capacity - occupied - reserved`. Deliveries accept only what fits and report the unaccepted remainder; multi-resource withdrawals are all-or-nothing. Output reservations are exclusive, must reserve compatible Parts & Products Warehouse space before a workpiece starts, and persist with unfinished workpieces; storage can be expanded with simple purchased capacity.
 - Pausing, boiler shutdown/fuel shortage, end-of-day, or turning equipment off preserves committed inputs, workpiece progress, and its output reservation. **Explicit cancellation** discards the unfinished work and committed inputs (no scrap refund in v0) and releases its reservation. Blocked machines cannot start new work.
 - Vendors have **unlimited instant availability** of catalog-listed raw materials and coal in v0. A manual purchase succeeds only when the player can pay and the receiving destination has sufficient capacity; inventory/fuel and Crowns must change together or not at all. Manual sales remove stored items and credit Crowns atomically.
 
@@ -68,7 +68,7 @@ Keep immutable **schematic/item/equipment definitions** separate from mutable in
 ## Implementation approach: working vertical slices
 
 1. Inspect current core code and tests (`SimulationClock`, `FactorySimulation`, `CoalBoiler`). Keep the existing .NET foundations.
-2. Implement the **smallest production slice** across only the needed domains: available materials and output reservation + power and complete crew + machine workpiece → one finished iron plate in central supply.
+2. Implement the **smallest production slice** across only the needed domains: available materials and output reservation + power and complete crew + machine workpiece → one finished iron plate in the Parts & Products Warehouse.
 3. Extend into assembly through shared inventory, manual procurement/sales, day-end payroll and obligations, and exact persistence **incrementally**, with focused tests each time.
 4. Validate multi-day factory scenarios, recovery and bankruptcy, actual powered-time production, and save/load during a pending 16:00 settlement **before any Godot work**.
 5. Balance costs, prices, starting capital, production rates, wages, and deadlines together with the Budget/Treasury work. Do not hard-code unapproved economic balance as product decisions.

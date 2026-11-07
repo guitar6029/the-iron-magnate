@@ -6,7 +6,7 @@ namespace IronMagnate.Core.Energy;
 
 public sealed class CoalBoiler
 {
-    public static readonly Resource Coal = new(ResourceType.Coal, "Coal", ResourceCategory.Fuel);
+    public const ResourceType FuelType = ResourceType.Coal;
 
     public const double MaxCoalCapacity = 300;
     public const double OperatingConsumptionPerHour = 4;
@@ -19,7 +19,7 @@ public sealed class CoalBoiler
 
     public SupplyStorage FuelStorage { get; }
 
-    public double CurrentCoalSupply => FuelStorage.GetQuantity(Coal);
+    public double CurrentCoalSupply => FuelStorage.GetQuantity(FuelType);
 
     public bool IsPoweredOn { get; private set; } = false;
 
@@ -39,13 +39,11 @@ public sealed class CoalBoiler
 
     public double AddCoal(double amount)
     {
-        return FuelStorage.Deliver(Coal, amount).UnacceptedQuantity;
+        return FuelStorage.Deliver(FuelType, amount).UnacceptedQuantity;
 
     }
 
-    public double Advance(double simulatedMinutes) => Advance(simulatedMinutes, isOperating: false);
-
-    public double Advance(double simulatedMinutes, bool isOperating)
+    public double Advance(double simulatedMinutes, BoilerConsumptionMode consumptionMode)
     {
         if (double.IsNaN(simulatedMinutes) ||
             double.IsInfinity(simulatedMinutes) ||
@@ -53,10 +51,14 @@ public sealed class CoalBoiler
         {
             throw new ArgumentOutOfRangeException(nameof(simulatedMinutes));
         }
-        if (!IsPoweredOn)
-            return 0;
+        if (!Enum.IsDefined(consumptionMode))
+        {
+            throw new ArgumentOutOfRangeException(nameof(consumptionMode));
+        }
 
-        var consumptionPerHour = isOperating
+        if (!IsPoweredOn) return 0;
+
+        var consumptionPerHour = consumptionMode == BoilerConsumptionMode.Operating
             ? OperatingConsumptionPerHour
             : StandbyConsumptionPerHour;
         var consumptionPerMinute = consumptionPerHour / 60;
@@ -70,7 +72,7 @@ public sealed class CoalBoiler
         var coalConsumed = consumptionPerMinute * actualPoweredMinutes;
         if (coalConsumed > 0)
         {
-            FuelStorage.TryWithdraw(Coal, coalConsumed);
+            FuelStorage.TryWithdraw(FuelType, coalConsumed);
         }
 
         if (CurrentCoalSupply <= 0)
@@ -84,7 +86,7 @@ public sealed class CoalBoiler
     private static SupplyStorage CreateStarterFuelStorage()
     {
         var storage = new SupplyStorage(StorageType.Fuel, MaxCoalCapacity, [ResourceCategory.Fuel]);
-        storage.Deliver(Coal, 200);
+        storage.Deliver(FuelType, 200);
         return storage;
     }
 }

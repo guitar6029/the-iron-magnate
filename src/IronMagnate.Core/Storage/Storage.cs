@@ -4,7 +4,7 @@ namespace IronMagnate.Core.Storage;
 
 public sealed class Storage
 {
-    private readonly Dictionary<Resource, double> quantities = [];
+    private readonly Dictionary<ResourceType, double> quantities = [];
     private readonly HashSet<ResourceCategory> acceptedCategories;
 
     public Storage(StorageType type, double capacity, IEnumerable<ResourceCategory> acceptedCategories)
@@ -36,41 +36,41 @@ public sealed class Storage
 
     public IReadOnlyCollection<ResourceCategory> AcceptedCategories => acceptedCategories;
 
-    public double GetQuantity(Resource resource)
+    public double GetQuantity(ResourceType resourceType)
     {
-        ArgumentNullException.ThrowIfNull(resource);
-        return quantities.GetValueOrDefault(resource);
+        ResourceCatalog.Get(resourceType);
+        return quantities.GetValueOrDefault(resourceType);
     }
 
-    public DeliveryResult Deliver(Resource resource, double quantity)
+    public DeliveryResult Deliver(ResourceType resourceType, double quantity)
     {
-        ValidateResourceAndQuantity(resource, quantity);
+        ValidateResourceTypeAndQuantity(resourceType, quantity);
 
         var acceptedQuantity = Math.Min(quantity, AvailableCapacity);
         if (acceptedQuantity > 0)
         {
-            quantities[resource] = GetQuantity(resource) + acceptedQuantity;
+            quantities[resourceType] = GetQuantity(resourceType) + acceptedQuantity;
             OccupiedCapacity += acceptedQuantity;
         }
 
         return new DeliveryResult(quantity, acceptedQuantity);
     }
 
-    public bool TryWithdraw(Resource resource, double quantity) =>
-        TryWithdraw([new ResourceQuantity(resource, quantity)]);
+    public bool TryWithdraw(ResourceType resourceType, double quantity) =>
+        TryWithdraw([new ResourceQuantity(resourceType, quantity)]);
 
     public bool TryWithdraw(IEnumerable<ResourceQuantity> requirements)
     {
         ArgumentNullException.ThrowIfNull(requirements);
 
-        var combinedRequirements = new Dictionary<Resource, double>();
+        var combinedRequirements = new Dictionary<ResourceType, double>();
         foreach (var requirement in requirements)
         {
             ArgumentNullException.ThrowIfNull(requirement);
-            ValidateResourceAndQuantity(requirement.Resource, requirement.Quantity);
-            combinedRequirements[requirement.Resource] = combinedRequirements.GetValueOrDefault(requirement.Resource) + requirement.Quantity;
+            ValidateResourceTypeAndQuantity(requirement.ResourceType, requirement.Quantity);
+            combinedRequirements[requirement.ResourceType] = combinedRequirements.GetValueOrDefault(requirement.ResourceType) + requirement.Quantity;
 
-            if (!double.IsFinite(combinedRequirements[requirement.Resource]))
+            if (!double.IsFinite(combinedRequirements[requirement.ResourceType]))
             {
                 throw new ArgumentOutOfRangeException(nameof(requirements));
             }
@@ -99,13 +99,13 @@ public sealed class Storage
         return true;
     }
 
-    private void ValidateResourceAndQuantity(Resource resource, double quantity)
+    private void ValidateResourceTypeAndQuantity(ResourceType resourceType, double quantity)
     {
-        ArgumentNullException.ThrowIfNull(resource);
+        var resource = ResourceCatalog.Get(resourceType);
 
         if (!acceptedCategories.Contains(resource.Category))
         {
-            throw new ArgumentException($"{resource.Name} is not accepted by {Type} storage.", nameof(resource));
+            throw new ArgumentException($"{resource.Name} is not accepted by {Type} storage.", nameof(resourceType));
         }
 
         if (!double.IsFinite(quantity) || quantity <= 0)

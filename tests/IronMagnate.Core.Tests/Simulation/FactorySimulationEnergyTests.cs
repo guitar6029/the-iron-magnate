@@ -69,7 +69,7 @@ public class FactorySimulationEnergyTests
     public void FuelExhaustionDoesNotPreventClockFromAdvancing()
     {
         var factory = CreateFactoryAtSpeed(SimulationSpeed.Normal);
-        factory.CoalYard.TryWithdraw(IronMagnate.Core.Energy.CoalBoiler.Coal, 199);
+        factory.CoalYard.TryWithdraw(IronMagnate.Core.Energy.CoalBoiler.FuelType, 199);
         factory.Boiler.TurnOn();
 
         var simulatedMinutes = factory.Advance(60);
@@ -84,7 +84,7 @@ public class FactorySimulationEnergyTests
     public void NextDayDoesNotRefillOrRestartExhaustedBoiler()
     {
         var factory = CreateFactoryAtSpeed(SimulationSpeed.Normal);
-        factory.CoalYard.TryWithdraw(IronMagnate.Core.Energy.CoalBoiler.Coal, 199);
+        factory.CoalYard.TryWithdraw(IronMagnate.Core.Energy.CoalBoiler.FuelType, 199);
         factory.Boiler.TurnOn();
         factory.Advance(60);
         factory.Advance(420);
