@@ -1,8 +1,12 @@
+using IronMagnate.Core.Energy;
+
 namespace IronMagnate.Core.Simulation;
 
 public class FactorySimulation
 {
     public SimulationClock Clock { get; } = new();
+
+    public CoalBoiler Boiler { get; } = new();
     public int CurrentDay { get; private set; } = 1;
 
     public void BeginNextDay()
@@ -18,6 +22,11 @@ public class FactorySimulation
 
     public double Advance(double elapsedSeconds)
     {
-        return Clock.Advance(elapsedSeconds);
+
+        double simulatedMinutes = Clock.Advance(elapsedSeconds);
+        double poweredInMinutes = Boiler.Advance(simulatedMinutes);
+
+        return simulatedMinutes;
+
     }
 }
