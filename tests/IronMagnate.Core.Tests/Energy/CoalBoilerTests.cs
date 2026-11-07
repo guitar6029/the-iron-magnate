@@ -252,4 +252,19 @@ public class CoalBoilerTests
 
         Assert.Equal(singleTickBoiler.CurrentCoalSupply, manyTickBoiler.CurrentCoalSupply, 10);
     }
+
+    [Fact]
+    public void OperatingConsumptionIsConsistentAcrossTickBoundaries()
+    {
+        var singleTickBoiler = PoweredBoiler();
+        var manyTickBoiler = PoweredBoiler();
+
+        singleTickBoiler.Advance(60, BoilerConsumptionMode.Operating);
+        for (var minute = 0; minute < 60; minute++)
+        {
+            manyTickBoiler.Advance(1, BoilerConsumptionMode.Operating);
+        }
+
+        Assert.Equal(singleTickBoiler.CurrentCoalSupply, manyTickBoiler.CurrentCoalSupply, 10);
+    }
 }

@@ -9,7 +9,10 @@ public sealed class Storage
 
     public Storage(StorageType type, double capacity, IEnumerable<ResourceCategory> acceptedCategories)
     {
-        if (!double.IsFinite(capacity) || capacity < 0)
+        if (!double.IsFinite(capacity) ||
+            capacity <= 0 ||
+            capacity > int.MaxValue ||
+            capacity != Math.Truncate(capacity))
         {
             throw new ArgumentOutOfRangeException(nameof(capacity));
         }
@@ -17,7 +20,7 @@ public sealed class Storage
         ArgumentNullException.ThrowIfNull(acceptedCategories);
 
         Type = type;
-        Capacity = capacity;
+        Capacity = (int)capacity;
         this.acceptedCategories = [.. acceptedCategories];
 
         if (this.acceptedCategories.Count == 0)
@@ -28,7 +31,7 @@ public sealed class Storage
 
     public StorageType Type { get; }
 
-    public double Capacity { get; }
+    public int Capacity { get; }
 
     public double OccupiedCapacity { get; private set; }
 
@@ -109,6 +112,11 @@ public sealed class Storage
         }
 
         if (!double.IsFinite(quantity) || quantity <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(quantity));
+        }
+
+        if (resource.Category != ResourceCategory.Fuel && quantity != Math.Truncate(quantity))
         {
             throw new ArgumentOutOfRangeException(nameof(quantity));
         }

@@ -92,14 +92,44 @@ public class StorageTests
     [Fact]
     public void ResourceTypeIsTheInventoryIdentityRegardlessOfDisplayMetadata()
     {
+        var coal = ResourceCatalog.Get(ResourceType.Coal);
+
+        Assert.Equal(ResourceType.Coal, coal.Type);
+        Assert.Equal("Coal", coal.Name);
+        Assert.Equal(ResourceCategory.Fuel, coal.Category);
+        Assert.Empty(typeof(Resource).GetConstructors());
+    }
+
+    [Theory]
+    [InlineData(1.5)]
+    [InlineData(-1)]
+    [InlineData(0)]
+    public void StorageRejectsFractionalOrNonPositiveCapacity(double capacity)
+    {
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            new SupplyStorage(StorageType.RawMaterials, capacity, [ResourceCategory.RawMaterial]));
+    }
+
+    [Theory]
+    [InlineData(0.5)]
+    [InlineData(1.5)]
+    public void PhysicalInventoryRejectsFractionalQuantities(double quantity)
+    {
         var storage = RawMaterialsStorage();
-        var conflictingDisplayResource = new Resource(ResourceType.Coal, "Iron ore", ResourceCategory.RawMaterial);
 
-        Assert.Throws<ArgumentException>(() => storage.Deliver(conflictingDisplayResource.Type, 2));
+        Assert.Throws<ArgumentOutOfRangeException>(() => storage.Deliver(ResourceType.IronOre, quantity));
+        Assert.Throws<ArgumentOutOfRangeException>(() => storage.TryWithdraw(ResourceType.IronOre, quantity));
+    }
 
-        Assert.Equal(0, storage.GetQuantity(conflictingDisplayResource.Type));
-        Assert.Equal("Coal", ResourceCatalog.Get(conflictingDisplayResource.Type).Name);
-        Assert.Equal(ResourceCategory.Fuel, ResourceCatalog.Get(conflictingDisplayResource.Type).Category);
+    [Fact]
+    public void FuelStorageAllowsFractionalCoalForBoilerConsumption()
+    {
+        var fuelStorage = new SupplyStorage(StorageType.Fuel, 2, [ResourceCategory.Fuel]);
+
+        fuelStorage.Deliver(ResourceType.Coal, 1.5);
+
+        Assert.True(fuelStorage.TryWithdraw(ResourceType.Coal, 0.5));
+        Assert.Equal(1, fuelStorage.GetQuantity(ResourceType.Coal));
     }
 
     private static SupplyStorage RawMaterialsStorage(double capacity = 10) =>
