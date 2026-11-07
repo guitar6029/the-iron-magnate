@@ -24,14 +24,19 @@ public class SimulationClock
         Speed = speed;
     }
 
-    public void Advance(double elapsedSeconds)
+    public double Advance(double elapsedSeconds)
     {
         if (elapsedSeconds < 0 || double.IsNaN(elapsedSeconds) || double.IsInfinity(elapsedSeconds))
         {
             throw new ArgumentOutOfRangeException(nameof(elapsedSeconds));
         }
 
-        if (Speed == SimulationSpeed.Paused) return;
+        var previousMinute = CurrentMinute;
+
+        if (Speed == SimulationSpeed.Paused)
+        {
+            return 0;
+        }
 
         int multiplier = (int)Speed;
         CurrentMinute = Math.Min(
@@ -43,6 +48,8 @@ public class SimulationClock
         {
             Speed = SimulationSpeed.Paused;
         }
+
+        return CurrentMinute - previousMinute;
 
     }
 

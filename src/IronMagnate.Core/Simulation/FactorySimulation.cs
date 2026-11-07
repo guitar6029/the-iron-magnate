@@ -16,8 +16,8 @@ public class FactorySimulation
         CurrentDay += 1;
     }
 
-    public void Advance(double elapsedSeconds)
+    public double Advance(double elapsedSeconds)
     {
-        Clock.Advance(elapsedSeconds);
+        return Clock.Advance(elapsedSeconds);
     }
 }
