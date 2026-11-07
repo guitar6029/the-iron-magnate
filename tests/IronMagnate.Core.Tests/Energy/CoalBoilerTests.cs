@@ -10,7 +10,7 @@ public class CoalBoilerTests
     {
         var boiler = new CoalBoiler();
 
-        Assert.Equal(100, boiler.CurrentCoalSupply);
+        Assert.Equal(200, boiler.CurrentCoalSupply);
         Assert.False(boiler.IsPoweredOn);
     }
 
@@ -52,7 +52,7 @@ public class CoalBoilerTests
     public void CannotTurnOnWithoutCoalAndAddingCoalDoesNotRestartIt()
     {
         var boiler = PoweredBoiler();
-        boiler.Advance(50);
+        boiler.Advance(12000);
 
         boiler.TurnOn();
         boiler.AddCoal(10);
@@ -68,7 +68,7 @@ public class CoalBoilerTests
 
         var leftover = boiler.AddCoal(25);
 
-        Assert.Equal(125, boiler.CurrentCoalSupply);
+        Assert.Equal(225, boiler.CurrentCoalSupply);
         Assert.Equal(0, leftover);
     }
 
@@ -108,7 +108,7 @@ public class CoalBoilerTests
 
         Assert.Throws<ArgumentOutOfRangeException>(() => boiler.AddCoal(amount));
 
-        Assert.Equal(100, boiler.CurrentCoalSupply);
+        Assert.Equal(200, boiler.CurrentCoalSupply);
         Assert.False(boiler.IsPoweredOn);
     }
 
@@ -132,18 +132,18 @@ public class CoalBoilerTests
         var poweredMinutes = boiler.Advance(10);
 
         Assert.Equal(0, poweredMinutes);
-        Assert.Equal(100, boiler.CurrentCoalSupply);
+        Assert.Equal(200, boiler.CurrentCoalSupply);
     }
 
     [Fact]
-    public void AdvanceConsumesTwoCoalPerSimulatedMinute()
+    public void AdvanceConsumesOneCoalPerStandbySimulationHour()
     {
         var boiler = PoweredBoiler();
 
-        var poweredMinutes = boiler.Advance(10);
+        var poweredMinutes = boiler.Advance(60);
 
-        Assert.Equal(10, poweredMinutes);
-        Assert.Equal(80, boiler.CurrentCoalSupply);
+        Assert.Equal(60, poweredMinutes);
+        Assert.Equal(199, boiler.CurrentCoalSupply);
     }
 
     [Fact]
@@ -154,7 +154,7 @@ public class CoalBoilerTests
         var poweredMinutes = boiler.Advance(0.25);
 
         Assert.Equal(0.25, poweredMinutes);
-        Assert.Equal(99.5, boiler.CurrentCoalSupply);
+        Assert.Equal(199.9958333333, boiler.CurrentCoalSupply, 10);
     }
 
     [Fact]
@@ -165,7 +165,7 @@ public class CoalBoilerTests
         var poweredMinutes = boiler.Advance(0);
 
         Assert.Equal(0, poweredMinutes);
-        Assert.Equal(100, boiler.CurrentCoalSupply);
+        Assert.Equal(200, boiler.CurrentCoalSupply);
         Assert.True(boiler.IsPoweredOn);
     }
 
@@ -174,9 +174,9 @@ public class CoalBoilerTests
     {
         var boiler = PoweredBoiler();
 
-        var poweredMinutes = boiler.Advance(75);
+        var poweredMinutes = boiler.Advance(12075);
 
-        Assert.Equal(50, poweredMinutes);
+        Assert.Equal(12000, poweredMinutes);
         Assert.Equal(0, boiler.CurrentCoalSupply);
         Assert.False(boiler.IsPoweredOn);
         Assert.Equal(0, boiler.Advance(1));
@@ -204,7 +204,7 @@ public class CoalBoilerTests
 
         Assert.Throws<ArgumentOutOfRangeException>(() => boiler.Advance(simulatedMinutes));
 
-        Assert.Equal(100, boiler.CurrentCoalSupply);
+        Assert.Equal(200, boiler.CurrentCoalSupply);
         Assert.True(boiler.IsPoweredOn);
     }
 
@@ -213,5 +213,31 @@ public class CoalBoilerTests
         var boiler = new CoalBoiler();
         boiler.TurnOn();
         return boiler;
+    }
+
+    [Fact]
+    public void AdvanceConsumesFourCoalPerOperatingSimulationHour()
+    {
+        var boiler = PoweredBoiler();
+
+        var poweredMinutes = boiler.Advance(60, isOperating: true);
+
+        Assert.Equal(60, poweredMinutes);
+        Assert.Equal(196, boiler.CurrentCoalSupply);
+    }
+
+    [Fact]
+    public void StandbyConsumptionIsConsistentAcrossTickBoundaries()
+    {
+        var singleTickBoiler = PoweredBoiler();
+        var manyTickBoiler = PoweredBoiler();
+
+        singleTickBoiler.Advance(60);
+        for (var minute = 0; minute < 60; minute++)
+        {
+            manyTickBoiler.Advance(1);
+        }
+
+        Assert.Equal(singleTickBoiler.CurrentCoalSupply, manyTickBoiler.CurrentCoalSupply, 10);
     }
 }

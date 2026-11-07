@@ -21,21 +21,21 @@ public class FactorySimulationEnergyTests
 
         factory.Advance(10);
 
-        Assert.Equal(100, factory.Boiler.CurrentCoalSupply);
+        Assert.Equal(200, factory.Boiler.CurrentCoalSupply);
     }
 
     [Theory]
-    [InlineData(SimulationSpeed.Normal, 2)]
-    [InlineData(SimulationSpeed.Fast, 4)]
-    [InlineData(SimulationSpeed.VeryFast, 8)]
-    public void AdvanceConsumesFuelForClockSimulatedTime(SimulationSpeed speed, double expectedCoalConsumed)
+    [InlineData(SimulationSpeed.Normal, 199.9833333333)]
+    [InlineData(SimulationSpeed.Fast, 199.9666666667)]
+    [InlineData(SimulationSpeed.VeryFast, 199.9333333333)]
+    public void AdvanceConsumesStandbyFuelForClockSimulatedTime(SimulationSpeed speed, double expectedCoalRemaining)
     {
         var factory = CreateFactoryAtSpeed(speed);
         factory.Boiler.TurnOn();
 
         factory.Advance(1);
 
-        Assert.Equal(100 - expectedCoalConsumed, factory.Boiler.CurrentCoalSupply);
+        Assert.Equal(expectedCoalRemaining, factory.Boiler.CurrentCoalSupply, 9);
     }
 
     [Fact]
@@ -46,7 +46,7 @@ public class FactorySimulationEnergyTests
 
         factory.Advance(10);
 
-        Assert.Equal(100, factory.Boiler.CurrentCoalSupply);
+        Assert.Equal(200, factory.Boiler.CurrentCoalSupply);
     }
 
     [Fact]
@@ -61,7 +61,7 @@ public class FactorySimulationEnergyTests
         var simulatedMinutes = factory.Advance(5);
 
         Assert.Equal(1.5, simulatedMinutes);
-        Assert.Equal(96, factory.Boiler.CurrentCoalSupply);
+        Assert.Equal(199.9666666667, factory.Boiler.CurrentCoalSupply, 10);
         Assert.Equal(960, factory.Clock.CurrentMinute);
     }
 
@@ -69,6 +69,7 @@ public class FactorySimulationEnergyTests
     public void FuelExhaustionDoesNotPreventClockFromAdvancing()
     {
         var factory = CreateFactoryAtSpeed(SimulationSpeed.Normal);
+        factory.CoalYard.TryWithdraw(IronMagnate.Core.Energy.CoalBoiler.Coal, 199);
         factory.Boiler.TurnOn();
 
         var simulatedMinutes = factory.Advance(60);
@@ -83,9 +84,10 @@ public class FactorySimulationEnergyTests
     public void NextDayDoesNotRefillOrRestartExhaustedBoiler()
     {
         var factory = CreateFactoryAtSpeed(SimulationSpeed.Normal);
+        factory.CoalYard.TryWithdraw(IronMagnate.Core.Energy.CoalBoiler.Coal, 199);
         factory.Boiler.TurnOn();
-        factory.Advance(50);
-        factory.Advance(430);
+        factory.Advance(60);
+        factory.Advance(420);
 
         factory.BeginNextDay();
 

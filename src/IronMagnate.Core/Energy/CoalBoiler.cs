@@ -1,14 +1,27 @@
+using IronMagnate.Core.Resources;
+using IronMagnate.Core.Storage;
+using SupplyStorage = IronMagnate.Core.Storage.Storage;
+
 namespace IronMagnate.Core.Energy;
 
-public class CoalBoiler
+public sealed class CoalBoiler
 {
-    public double CurrentCoalSupply { get; private set; } = 100;
+    public static readonly Resource Coal = new(ResourceType.Coal, "Coal", ResourceCategory.Fuel);
 
-    public const double MaxCoalCapacity = 200;
+    public const double MaxCoalCapacity = 300;
+    public const double OperatingConsumptionPerHour = 4;
+    public const double StandbyConsumptionPerHour = 1;
+
+    public CoalBoiler(SupplyStorage? fuelStorage = null)
+    {
+        FuelStorage = fuelStorage ?? CreateStarterFuelStorage();
+    }
+
+    public SupplyStorage FuelStorage { get; }
+
+    public double CurrentCoalSupply => FuelStorage.GetQuantity(Coal);
 
     public bool IsPoweredOn { get; private set; } = false;
-
-    public const int ConsumptionPerMinute = 2;
 
     public void TurnOn()
     {
@@ -26,23 +39,13 @@ public class CoalBoiler
 
     public double AddCoal(double amount)
     {
-
-        if (Double.IsNaN(amount) || Double.IsInfinity(amount) || amount <= 0)
-        {
-            throw new ArgumentOutOfRangeException(nameof(amount));
-        }
-
-        var coalSupplyBeforeAdd = CurrentCoalSupply;
-        CurrentCoalSupply = Math.Min(
-                CurrentCoalSupply + amount, MaxCoalCapacity
-            );
-
-
-        return amount - (CurrentCoalSupply - coalSupplyBeforeAdd);
+        return FuelStorage.Deliver(Coal, amount).UnacceptedQuantity;
 
     }
 
-    public double Advance(double simulatedMinutes)
+    public double Advance(double simulatedMinutes) => Advance(simulatedMinutes, isOperating: false);
+
+    public double Advance(double simulatedMinutes, bool isOperating)
     {
         if (double.IsNaN(simulatedMinutes) ||
             double.IsInfinity(simulatedMinutes) ||
@@ -53,22 +56,22 @@ public class CoalBoiler
         if (!IsPoweredOn)
             return 0;
 
-        // How long COULD the boiler operate with its current coal?
-        double availablePoweredMinutes =
-             CurrentCoalSupply / ConsumptionPerMinute;
+        var consumptionPerHour = isOperating
+            ? OperatingConsumptionPerHour
+            : StandbyConsumptionPerHour;
+        var consumptionPerMinute = consumptionPerHour / 60;
+        var availablePoweredMinutes = CurrentCoalSupply / consumptionPerMinute;
 
         double actualPoweredMinutes = Math.Min(
             simulatedMinutes,
             availablePoweredMinutes
         );
 
-        double coalConsumed =
-            ConsumptionPerMinute * actualPoweredMinutes;
-
-        CurrentCoalSupply = Math.Max(
-            0,
-            CurrentCoalSupply - coalConsumed
-        );
+        var coalConsumed = consumptionPerMinute * actualPoweredMinutes;
+        if (coalConsumed > 0)
+        {
+            FuelStorage.TryWithdraw(Coal, coalConsumed);
+        }
 
         if (CurrentCoalSupply <= 0)
         {
@@ -78,4 +81,10 @@ public class CoalBoiler
         return actualPoweredMinutes;
     }
 
+    private static SupplyStorage CreateStarterFuelStorage()
+    {
+        var storage = new SupplyStorage(StorageType.Fuel, MaxCoalCapacity, [ResourceCategory.Fuel]);
+        storage.Deliver(Coal, 200);
+        return storage;
+    }
 }
