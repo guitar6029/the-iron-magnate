@@ -1,3 +1,5 @@
+using System.Collections.ObjectModel;
+
 namespace IronMagnate.Core.Workforce;
 
 public sealed class Workforce
@@ -5,8 +7,16 @@ public sealed class Workforce
     private readonly List<Worker> employees = [];
     private readonly List<Worker> workersEmployedToday = [];
     private readonly Dictionary<Guid, WorkerAssignment> assignmentsByWorker = [];
+    private readonly ReadOnlyCollection<Worker> employeesView;
+    private readonly ReadOnlyCollection<Worker> workersEmployedTodayView;
 
-    public IReadOnlyList<Worker> Employees => employees;
+    public Workforce()
+    {
+        employeesView = employees.AsReadOnly();
+        workersEmployedTodayView = workersEmployedToday.AsReadOnly();
+    }
+
+    public IReadOnlyList<Worker> Employees => employeesView;
 
     public IReadOnlyList<Worker> IdleWorkers =>
         employees.Where(worker => !assignmentsByWorker.ContainsKey(worker.Id)).ToList();
@@ -14,7 +24,7 @@ public sealed class Workforce
     public IReadOnlyList<WorkerAssignment> Assignments => assignmentsByWorker.Values.ToList();
 
     // Includes workers dismissed after being employed, so a future Treasury slice can accrue a full-day wage once.
-    public IReadOnlyList<Worker> WorkersEmployedToday => workersEmployedToday;
+    public IReadOnlyList<Worker> WorkersEmployedToday => workersEmployedTodayView;
 
     public Worker Hire(string name)
     {
@@ -66,26 +76,37 @@ public sealed class Workforce
             throw new ArgumentOutOfRangeException(nameof(requiredCrew));
         }
 
-        if (assignmentsByWorker.Values.Any(assignment => assignment.WorkstationId == workstationId))
+        var existingCrew = employees
+            .Where(worker => assignmentsByWorker.GetValueOrDefault(worker.Id)?.WorkstationId == workstationId)
+            .ToList();
+
+        if (existingCrew.Count > requiredCrew)
         {
             assignedWorkers = [];
             return false;
+        }
+
+        var additionalWorkersNeeded = requiredCrew - existingCrew.Count;
+        if (additionalWorkersNeeded == 0)
+        {
+            assignedWorkers = existingCrew;
+            return true;
         }
 
         var availableWorkers = IdleWorkers;
-        if (availableWorkers.Count < requiredCrew)
+        if (availableWorkers.Count < additionalWorkersNeeded)
         {
             assignedWorkers = [];
             return false;
         }
 
-        var crew = availableWorkers.Take(requiredCrew).ToList();
-        foreach (var worker in crew)
+        var additionalWorkers = availableWorkers.Take(additionalWorkersNeeded).ToList();
+        foreach (var worker in additionalWorkers)
         {
             assignmentsByWorker.Add(worker.Id, new WorkerAssignment(worker.Id, workstationId));
         }
 
-        assignedWorkers = crew;
+        assignedWorkers = [.. existingCrew, .. additionalWorkers];
         return true;
     }
 
