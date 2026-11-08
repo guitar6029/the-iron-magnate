@@ -36,6 +36,13 @@ public sealed class Schematic
                 "Input quantities must be positive.",
                 nameof(inputs));
 
+        foreach (var input in inputs)
+        {
+            ResourceCatalog.Get(input.Key);
+        }
+
+        ResourceCatalog.Get(output);
+
         if (outputQuantity <= 0)
             throw new ArgumentOutOfRangeException(nameof(outputQuantity));
 
