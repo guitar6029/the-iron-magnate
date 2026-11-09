@@ -75,4 +75,18 @@ public sealed class Machine
     {
         IsEnabled = false;
     }
+
+    public void SelectSchematic(Schematic schematic)
+    {
+        ArgumentNullException.ThrowIfNull(schematic);
+
+        if (!SupportedSchematics.Contains(schematic))
+        {
+            throw new ArgumentException(
+                "Selected schematic must be supported by the machine.",
+                nameof(schematic));
+        }
+
+        SelectedSchematic = schematic;
+    }
 }
