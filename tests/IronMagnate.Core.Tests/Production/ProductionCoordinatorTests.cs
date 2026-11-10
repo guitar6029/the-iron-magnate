@@ -196,6 +196,156 @@ public class ProductionCoordinatorTests
         Assert.False(coordinator.IsFullyStaffed(machine.Id, workforce));
     }
 
+    [Fact]
+    public void FillCrewAssignsOnlyTheTwoVacanciesWhenThreeOfFiveWorkersAreAlreadyAssigned()
+    {
+        var coordinator = new ProductionCoordinator();
+        var machine = RegisterEnabledMachine(coordinator, requiredCrew: 5);
+        var workforce = CreateWorkforce(7);
+        AssignWorkers(workforce, machine.Id, 3);
+
+        var assigned = coordinator.FillCrew(machine.Id, workforce);
+
+        Assert.Equal(2, assigned);
+        Assert.Equal(5, AssignedCrewCount(workforce, machine.Id));
+        Assert.Equal(2, workforce.IdleWorkers.Count);
+    }
+
+    [Fact]
+    public void FillCrewPartiallyStaffsAMachineWhenFewerWorkersAreAvailableThanRequired()
+    {
+        var coordinator = new ProductionCoordinator();
+        var machine = RegisterEnabledMachine(coordinator, requiredCrew: 5);
+        var workforce = CreateWorkforce(2);
+
+        var assigned = coordinator.FillCrew(machine.Id, workforce);
+
+        Assert.Equal(2, assigned);
+        Assert.Equal(2, AssignedCrewCount(workforce, machine.Id));
+    }
+
+    [Fact]
+    public void FillCrewAssignsNoWorkersWhenTheMachineAlreadyHasACompleteCrew()
+    {
+        var coordinator = new ProductionCoordinator();
+        var machine = RegisterEnabledMachine(coordinator, requiredCrew: 5);
+        var workforce = CreateWorkforce(5);
+        AssignWorkers(workforce, machine.Id, 5);
+
+        Assert.Equal(0, coordinator.FillCrew(machine.Id, workforce));
+        Assert.Equal(5, AssignedCrewCount(workforce, machine.Id));
+    }
+
+    [Fact]
+    public void RepeatedFillCrewCallsNeverExceedTheRequiredCrewCapacity()
+    {
+        var coordinator = new ProductionCoordinator();
+        var machine = RegisterEnabledMachine(coordinator, requiredCrew: 5);
+        var workforce = CreateWorkforce(10);
+
+        Assert.Equal(5, coordinator.FillCrew(machine.Id, workforce));
+        Assert.Equal(0, coordinator.FillCrew(machine.Id, workforce));
+        Assert.Equal(5, AssignedCrewCount(workforce, machine.Id));
+    }
+
+    [Fact]
+    public void FillCrewAssignsExactlyFiveOfTenAvailableWorkersToAMachineRequiringFive()
+    {
+        var coordinator = new ProductionCoordinator();
+        var machine = RegisterEnabledMachine(coordinator, requiredCrew: 5);
+        var workforce = CreateWorkforce(10);
+
+        Assert.Equal(5, coordinator.FillCrew(machine.Id, workforce));
+        Assert.Equal(5, AssignedCrewCount(workforce, machine.Id));
+        Assert.Equal(5, workforce.IdleWorkers.Count);
+        Assert.All(
+            workforce.Employees.Take(5),
+            worker => Assert.Contains(
+                workforce.Assignments,
+                assignment => assignment.WorkerId == worker.Id && assignment.WorkstationId == machine.Id.ToString()));
+        Assert.All(
+            workforce.Employees.Skip(5),
+            worker => Assert.DoesNotContain(
+                workforce.Assignments,
+                assignment => assignment.WorkerId == worker.Id));
+    }
+
+    [Fact]
+    public void FillCrewAssignsNoWorkersForAnUnknownMachine()
+    {
+        var coordinator = new ProductionCoordinator();
+        var workforce = CreateWorkforce(2);
+
+        Assert.Equal(0, coordinator.FillCrew(Guid.NewGuid(), workforce));
+        Assert.Empty(workforce.Assignments);
+    }
+
+    [Fact]
+    public void FillCrewDoesNotReleaseExistingAssignmentsForADisabledMachine()
+    {
+        var coordinator = new ProductionCoordinator();
+        var machine = CreateMachine(requiredCrew: 5);
+        var workforce = CreateWorkforce(5);
+        AssignWorkers(workforce, machine.Id, 3);
+        var assignmentsBeforeFillAttempt = workforce.Assignments;
+        coordinator.RegisterMachine(machine);
+
+        Assert.Equal(0, coordinator.FillCrew(machine.Id, workforce));
+        Assert.Equal(assignmentsBeforeFillAttempt, workforce.Assignments);
+    }
+
+    [Fact]
+    public void FillCrewAssignsNoWorkersWhenNoWorkersAreAvailable()
+    {
+        var coordinator = new ProductionCoordinator();
+        var machine = RegisterEnabledMachine(coordinator, requiredCrew: 5);
+        var workforce = CreateWorkforce(2);
+        AssignWorkers(workforce, Guid.NewGuid(), 2);
+
+        Assert.Equal(0, coordinator.FillCrew(machine.Id, workforce));
+        Assert.Equal(0, AssignedCrewCount(workforce, machine.Id));
+    }
+
+    [Fact]
+    public void FillCrewDoesNotStealWorkersAssignedToAnotherMachine()
+    {
+        var coordinator = new ProductionCoordinator();
+        var machine = RegisterEnabledMachine(coordinator, requiredCrew: 5);
+        var otherMachineId = Guid.NewGuid();
+        var workforce = CreateWorkforce(6);
+        Assert.True(workforce.TryAssign(workforce.Employees[0].Id, otherMachineId.ToString()));
+
+        Assert.Equal(5, coordinator.FillCrew(machine.Id, workforce));
+        Assert.Contains(
+            workforce.Assignments,
+            assignment => assignment.WorkerId == workforce.Employees[0].Id
+                && assignment.WorkstationId == otherMachineId.ToString());
+        Assert.Equal(5, AssignedCrewCount(workforce, machine.Id));
+    }
+
+    [Fact]
+    public void FillCrewRejectsANullWorkforce()
+    {
+        var coordinator = new ProductionCoordinator();
+
+        Assert.Throws<ArgumentNullException>(() => coordinator.FillCrew(Guid.NewGuid(), null!));
+    }
+
+    [Fact]
+    public void FillCrewLeavesExistingAssignmentsUnchangedWhenItCannotAssignWorkers()
+    {
+        var coordinator = new ProductionCoordinator();
+        var machine = RegisterEnabledMachine(coordinator, requiredCrew: 5);
+        var otherMachineId = Guid.NewGuid();
+        var workforce = CreateWorkforce(3);
+        AssignWorkers(workforce, machine.Id, 2);
+        Assert.True(workforce.TryAssign(workforce.Employees[2].Id, otherMachineId.ToString()));
+        var assignmentsBeforeFillAttempt = workforce.Assignments;
+
+        Assert.Equal(0, coordinator.FillCrew(machine.Id, workforce));
+        Assert.Equal(assignmentsBeforeFillAttempt, workforce.Assignments);
+    }
+
     private static Machine CreateMachine(
         Guid? id = null,
         string name = "Stamping press",
@@ -209,6 +359,14 @@ public class ProductionCoordinatorTests
             15);
 
         return new Machine(id ?? Guid.NewGuid(), name, 4, requiredCrew, [schematic], schematic);
+    }
+
+    private static Machine RegisterEnabledMachine(ProductionCoordinator coordinator, int requiredCrew)
+    {
+        var machine = CreateMachine(requiredCrew: requiredCrew);
+        machine.Enable();
+        Assert.True(coordinator.RegisterMachine(machine));
+        return machine;
     }
 
     private static FactoryWorkforce CreateWorkforce(int workerCount)
@@ -229,4 +387,7 @@ public class ProductionCoordinatorTests
             Assert.True(workforce.TryAssign(worker.Id, machineId.ToString()));
         }
     }
+
+    private static int AssignedCrewCount(FactoryWorkforce workforce, Guid machineId) =>
+        workforce.Assignments.Count(assignment => assignment.WorkstationId == machineId.ToString());
 }
