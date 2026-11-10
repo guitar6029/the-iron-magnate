@@ -35,4 +35,60 @@ public sealed class ProductionCoordinator
 
         return assignedCount == machine.RequiredCrew;
     }
+
+    public int FillCrew(Guid machineId, Workforce workforce)
+    {
+        /**
+        Find the register machine
+        Check whether its enabled
+        calculate its vacant positions
+        select available, unassigned workers in a consistent order
+        assign only as many as needed, never exceeding
+        */
+
+        ArgumentNullException.ThrowIfNull(workforce);
+
+        Machine? machine = GetMachine(machineId);
+
+        if (machine is null || !machine.IsEnabled)
+        {
+            return 0;
+        }
+
+
+        int assignedCount = workforce.Assignments.Count(
+    assignment => assignment.WorkstationId == machineId.ToString()
+);
+
+        int vacancies = machine.RequiredCrew - assignedCount;
+
+        int workersToAssign = Math.Min(
+            vacancies,
+            workforce.IdleWorkers.Count
+        );
+
+        if (workersToAssign <= 0)
+        {
+            return 0;
+        }
+
+        var selectedWorkers = workforce.IdleWorkers
+            .Take(workersToAssign)
+            .ToList();
+
+        int assigned = 0;
+
+        foreach (var worker in selectedWorkers)
+        {
+            if (workforce.TryAssign(worker.Id, machineId.ToString()))
+            {
+                assigned++;
+            }
+        }
+
+        return assigned;
+
+
+
+    }
 }
