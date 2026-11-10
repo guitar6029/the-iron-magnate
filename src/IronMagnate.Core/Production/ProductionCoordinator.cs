@@ -10,4 +10,9 @@ public sealed class ProductionCoordinator
 
         return machines.TryAdd(machine.Id, machine);
     }
+
+    public Machine? GetMachine(Guid machineId)
+    {
+        return machines.GetValueOrDefault(machineId);
+    }
 }
