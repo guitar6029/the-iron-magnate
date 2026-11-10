@@ -1,5 +1,7 @@
 namespace IronMagnate.Core.Production;
 
+using IronMagnate.Core.Workforce;
+
 public sealed class ProductionCoordinator
 {
     private readonly Dictionary<Guid, Machine> machines = [];
@@ -14,5 +16,23 @@ public sealed class ProductionCoordinator
     public Machine? GetMachine(Guid machineId)
     {
         return machines.GetValueOrDefault(machineId);
+    }
+
+    public bool IsFullyStaffed(Guid machineId, Workforce workforce)
+    {
+        ArgumentNullException.ThrowIfNull(workforce);
+
+        var machine = GetMachine(machineId);
+
+        if (machine is null)
+        {
+            return false;
+        }
+
+        var assignedCount = workforce.Assignments.Count(
+            assigment => assigment.WorkstationId == machineId.ToString()
+        );
+
+        return assignedCount == machine.RequiredCrew;
     }
 }
