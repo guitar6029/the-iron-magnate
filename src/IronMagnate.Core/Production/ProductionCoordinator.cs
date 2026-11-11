@@ -136,4 +136,25 @@ public sealed class ProductionCoordinator
 
         return totalAssigned;
     }
+
+    public bool CanOperate(
+    Guid machineId,
+    Workforce workforce,
+    bool hasPower)
+    {
+        ArgumentNullException.ThrowIfNull(workforce);
+
+        Machine? machine = GetMachine(machineId);
+
+        if (machine is null)
+            return false;
+
+        if (!machine.IsEnabled)
+            return false;
+
+        if (!hasPower)
+            return false;
+
+        return IsFullyStaffed(machineId, workforce);
+    }
 }

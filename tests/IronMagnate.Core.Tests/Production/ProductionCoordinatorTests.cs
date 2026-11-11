@@ -197,6 +197,117 @@ public class ProductionCoordinatorTests
     }
 
     [Fact]
+    public void CanOperateReturnsTrueForARegisteredEnabledFullyStaffedPoweredMachine()
+    {
+        var coordinator = new ProductionCoordinator();
+        var machine = RegisterEnabledMachine(coordinator, requiredCrew: 2);
+        var workforce = CreateWorkforce(2);
+        AssignWorkers(workforce, machine.Id, 2);
+
+        Assert.True(coordinator.CanOperate(machine.Id, workforce, hasPower: true));
+    }
+
+    [Fact]
+    public void CanOperateReturnsFalseForAnUnknownMachine()
+    {
+        var coordinator = new ProductionCoordinator();
+
+        Assert.False(coordinator.CanOperate(Guid.NewGuid(), CreateWorkforce(2), hasPower: true));
+    }
+
+    [Fact]
+    public void CanOperateReturnsFalseForADisabledMachineEvenWhenFullyStaffedAndPowered()
+    {
+        var coordinator = new ProductionCoordinator();
+        var machine = CreateMachine(requiredCrew: 2);
+        var workforce = CreateWorkforce(2);
+        AssignWorkers(workforce, machine.Id, 2);
+        coordinator.RegisterMachine(machine);
+
+        Assert.False(coordinator.CanOperate(machine.Id, workforce, hasPower: true));
+    }
+
+    [Fact]
+    public void CanOperateReturnsFalseWhenPowerIsUnavailableEvenWhenOtherRequirementsPass()
+    {
+        var coordinator = new ProductionCoordinator();
+        var machine = RegisterEnabledMachine(coordinator, requiredCrew: 2);
+        var workforce = CreateWorkforce(2);
+        AssignWorkers(workforce, machine.Id, 2);
+
+        Assert.False(coordinator.CanOperate(machine.Id, workforce, hasPower: false));
+    }
+
+    [Fact]
+    public void CanOperateReturnsFalseWhenNoWorkersAreAssigned()
+    {
+        var coordinator = new ProductionCoordinator();
+        var machine = RegisterEnabledMachine(coordinator, requiredCrew: 2);
+
+        Assert.False(coordinator.CanOperate(machine.Id, CreateWorkforce(2), hasPower: true));
+    }
+
+    [Fact]
+    public void CanOperateReturnsFalseWhenMachineIsPartiallyStaffed()
+    {
+        var coordinator = new ProductionCoordinator();
+        var machine = RegisterEnabledMachine(coordinator, requiredCrew: 2);
+        var workforce = CreateWorkforce(2);
+        AssignWorkers(workforce, machine.Id, 1);
+
+        Assert.False(coordinator.CanOperate(machine.Id, workforce, hasPower: true));
+    }
+
+    [Fact]
+    public void CanOperateReturnsTrueWhenExactlyTheRequiredCrewIsAssigned()
+    {
+        var coordinator = new ProductionCoordinator();
+        var machine = RegisterEnabledMachine(coordinator, requiredCrew: 3);
+        var workforce = CreateWorkforce(3);
+        AssignWorkers(workforce, machine.Id, 3);
+
+        Assert.True(coordinator.CanOperate(machine.Id, workforce, hasPower: true));
+    }
+
+    [Fact]
+    public void CanOperateReturnsFalseWhenMachineIsOverstaffed()
+    {
+        var coordinator = new ProductionCoordinator();
+        var machine = RegisterEnabledMachine(coordinator, requiredCrew: 2);
+        var workforce = CreateWorkforce(3);
+        AssignWorkers(workforce, machine.Id, 3);
+
+        Assert.False(coordinator.CanOperate(machine.Id, workforce, hasPower: true));
+    }
+
+    [Fact]
+    public void CanOperateRejectsANullWorkforce()
+    {
+        var coordinator = new ProductionCoordinator();
+
+        Assert.Throws<ArgumentNullException>(() => coordinator.CanOperate(Guid.NewGuid(), null!, hasPower: true));
+    }
+
+    [Fact]
+    public void CanOperateDoesNotMutateMachineStateOrWorkforceAssignments()
+    {
+        var coordinator = new ProductionCoordinator();
+        var machine = RegisterEnabledMachine(coordinator, requiredCrew: 2);
+        var workforce = CreateWorkforce(2);
+        AssignWorkers(workforce, machine.Id, 2);
+        var assignmentsBeforeChecks = workforce.Assignments;
+        var selectedSchematicBeforeChecks = machine.SelectedSchematic;
+        var enabledBeforeChecks = machine.IsEnabled;
+
+        Assert.True(coordinator.CanOperate(machine.Id, workforce, hasPower: true));
+        Assert.True(coordinator.CanOperate(machine.Id, workforce, hasPower: true));
+
+        Assert.Equal(assignmentsBeforeChecks, workforce.Assignments);
+        Assert.Same(selectedSchematicBeforeChecks, machine.SelectedSchematic);
+        Assert.Equal(enabledBeforeChecks, machine.IsEnabled);
+    }
+
+    [Fact]
     public void FillCrewAssignsOnlyTheTwoVacanciesWhenThreeOfFiveWorkersAreAlreadyAssigned()
     {
         var coordinator = new ProductionCoordinator();
