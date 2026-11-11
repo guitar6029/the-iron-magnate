@@ -80,7 +80,7 @@ public sealed class ProductionCoordinator
 
         foreach (var worker in selectedWorkers)
         {
-            if (workforce.TryAssign(worker.Id, machineId.ToString()))
+            if (TryAssignWorker(machineId, worker.Id, workforce))
             {
                 assigned++;
             }

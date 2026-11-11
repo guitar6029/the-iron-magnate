@@ -346,6 +346,151 @@ public class ProductionCoordinatorTests
         Assert.Equal(assignmentsBeforeFillAttempt, workforce.Assignments);
     }
 
+    [Fact]
+    public void TryAssignWorkerCapsOneHundredSequentialAttemptsAtFiveSuccessfulAssignments()
+    {
+        var coordinator = new ProductionCoordinator();
+        var machine = RegisterEnabledMachine(coordinator, requiredCrew: 5);
+        var workforce = CreateWorkforce(20);
+
+        var successfulAssignments = Enumerable.Range(0, 100)
+            .Count(attempt => coordinator.TryAssignWorker(
+                machine.Id,
+                workforce.Employees[attempt % workforce.Employees.Count].Id,
+                workforce));
+
+        Assert.Equal(5, successfulAssignments);
+        Assert.Equal(5, AssignedCrewCount(workforce, machine.Id));
+    }
+
+    [Fact]
+    public void TryAssignWorkerOnlyAssignsTheSameWorkerOnce()
+    {
+        var coordinator = new ProductionCoordinator();
+        var machine = RegisterEnabledMachine(coordinator, requiredCrew: 5);
+        var workforce = CreateWorkforce(1);
+        var worker = workforce.Employees.Single();
+
+        var successfulAssignments = Enumerable.Range(0, 10)
+            .Count(_ => coordinator.TryAssignWorker(machine.Id, worker.Id, workforce));
+
+        Assert.Equal(1, successfulAssignments);
+        Assert.Equal(1, AssignedCrewCount(workforce, machine.Id));
+    }
+
+    [Fact]
+    public void TryAssignWorkerRejectsAdditionalWorkersWhenTheMachineIsFullWithoutChangingAssignments()
+    {
+        var coordinator = new ProductionCoordinator();
+        var machine = RegisterEnabledMachine(coordinator, requiredCrew: 5);
+        var workforce = CreateWorkforce(8);
+        foreach (var worker in workforce.Employees.Take(5))
+        {
+            Assert.True(coordinator.TryAssignWorker(machine.Id, worker.Id, workforce));
+        }
+
+        var assignmentsBeforeRejectedRequests = workforce.Assignments;
+
+        Assert.All(
+            workforce.Employees.Skip(5),
+            worker => Assert.False(coordinator.TryAssignWorker(machine.Id, worker.Id, workforce)));
+        Assert.Equal(assignmentsBeforeRejectedRequests, workforce.Assignments);
+    }
+
+    [Fact]
+    public void TryAssignWorkerFillsOnlyTheRemainingTwoVacanciesOfAPartiallyStaffedMachine()
+    {
+        var coordinator = new ProductionCoordinator();
+        var machine = RegisterEnabledMachine(coordinator, requiredCrew: 5);
+        var workforce = CreateWorkforce(7);
+        AssignWorkers(workforce, machine.Id, 3);
+
+        var successfulAssignments = workforce.Employees.Skip(3)
+            .Count(worker => coordinator.TryAssignWorker(machine.Id, worker.Id, workforce));
+
+        Assert.Equal(2, successfulAssignments);
+        Assert.Equal(5, AssignedCrewCount(workforce, machine.Id));
+    }
+
+    [Fact]
+    public void OneHundredFillCrewCallsNeverExceedTheRequiredCrewCapacity()
+    {
+        var coordinator = new ProductionCoordinator();
+        var machine = RegisterEnabledMachine(coordinator, requiredCrew: 5);
+        var workforce = CreateWorkforce(20);
+
+        var successfulAssignments = Enumerable.Range(0, 100)
+            .Sum(_ => coordinator.FillCrew(machine.Id, workforce));
+
+        Assert.Equal(5, successfulAssignments);
+        Assert.Equal(5, AssignedCrewCount(workforce, machine.Id));
+    }
+
+    [Fact]
+    public void MixedManualAndAutomaticAssignmentPathsNeverExceedTheRequiredCrew()
+    {
+        var coordinator = new ProductionCoordinator();
+        var machine = RegisterEnabledMachine(coordinator, requiredCrew: 5);
+        var workforce = CreateWorkforce(20);
+
+        for (var attempt = 0; attempt < 100; attempt++)
+        {
+            if (attempt % 2 == 0)
+            {
+                coordinator.TryAssignWorker(
+                    machine.Id,
+                    workforce.Employees[attempt % workforce.Employees.Count].Id,
+                    workforce);
+            }
+            else
+            {
+                coordinator.FillCrew(machine.Id, workforce);
+            }
+        }
+
+        Assert.Equal(5, AssignedCrewCount(workforce, machine.Id));
+    }
+
+    [Fact]
+    public void AWorkerAssignedToOneMachineCannotBeAssignedToAnotherMachine()
+    {
+        var coordinator = new ProductionCoordinator();
+        var firstMachine = RegisterEnabledMachine(coordinator, requiredCrew: 5);
+        var secondMachine = RegisterEnabledMachine(coordinator, requiredCrew: 5);
+        var workforce = CreateWorkforce(1);
+        var worker = workforce.Employees.Single();
+
+        Assert.True(coordinator.TryAssignWorker(firstMachine.Id, worker.Id, workforce));
+        Assert.False(coordinator.TryAssignWorker(secondMachine.Id, worker.Id, workforce));
+        Assert.Equal(1, AssignedCrewCount(workforce, firstMachine.Id));
+        Assert.Equal(0, AssignedCrewCount(workforce, secondMachine.Id));
+    }
+
+    [Fact]
+    public void TryAssignWorkerAllowsManualAssignmentToADisabledMachineButFillCrewDoesNotAddWorkers()
+    {
+        var coordinator = new ProductionCoordinator();
+        var machine = CreateMachine(requiredCrew: 5);
+        var workforce = CreateWorkforce(2);
+        coordinator.RegisterMachine(machine);
+
+        Assert.True(coordinator.TryAssignWorker(machine.Id, workforce.Employees[0].Id, workforce));
+        Assert.Equal(0, coordinator.FillCrew(machine.Id, workforce));
+        Assert.Equal(1, AssignedCrewCount(workforce, machine.Id));
+        Assert.Single(workforce.IdleWorkers);
+    }
+
+    [Fact]
+    public void TryAssignWorkerRejectsAnUnknownMachineWithoutModifyingWorkforceState()
+    {
+        var coordinator = new ProductionCoordinator();
+        var workforce = CreateWorkforce(1);
+        var assignmentsBeforeRejectedRequest = workforce.Assignments;
+
+        Assert.False(coordinator.TryAssignWorker(Guid.NewGuid(), workforce.Employees.Single().Id, workforce));
+        Assert.Equal(assignmentsBeforeRejectedRequest, workforce.Assignments);
+    }
+
     private static Machine CreateMachine(
         Guid? id = null,
         string name = "Stamping press",
