@@ -770,7 +770,7 @@ public class ProductionCoordinatorTests
             1,
             15);
 
-        return new Machine(id ?? Guid.NewGuid(), name, 4, requiredCrew, [schematic], schematic);
+        return new Machine(id ?? Guid.NewGuid(), name, 4, requiredCrew, 10, [schematic], schematic);
     }
 
     private static Machine RegisterEnabledMachine(ProductionCoordinator coordinator, int requiredCrew)

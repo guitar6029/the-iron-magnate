@@ -9,12 +9,15 @@ public sealed class Machine
     public IReadOnlyList<Schematic> SupportedSchematics { get; }
     public Schematic SelectedSchematic { get; private set; }
     public bool IsEnabled { get; private set; }
+    public ProductionCycle? ActiveCycle { get; private set; }
+    public MachineOutputBuffer OutputBuffer { get; }
 
     public Machine(
         Guid id,
         string name,
         int requiredPower,
         int requiredCrew,
+        int outputBufferCapacity,
         IReadOnlyList<Schematic> supportedSchematics,
         Schematic selectedSchematic
     )
@@ -36,6 +39,9 @@ public sealed class Machine
 
         if (requiredCrew <= 0)
             throw new ArgumentOutOfRangeException(nameof(requiredCrew));
+
+        if (outputBufferCapacity <= 0)
+            throw new ArgumentOutOfRangeException(nameof(outputBufferCapacity));
 
 
         if (supportedSchematics.Count == 0)
@@ -64,6 +70,7 @@ public sealed class Machine
     new List<Schematic>(supportedSchematics).AsReadOnly();
         SelectedSchematic = selectedSchematic;
         IsEnabled = false;
+        OutputBuffer = new MachineOutputBuffer(outputBufferCapacity);
     }
 
     public void Enable()

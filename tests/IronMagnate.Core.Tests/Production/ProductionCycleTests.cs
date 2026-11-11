@@ -125,7 +125,7 @@ public class ProductionCycleTests
     {
         var first = CreateSchematic("Iron plate", 5);
         var second = CreateSchematic("Copper plate", 10);
-        var machine = new Machine(Guid.NewGuid(), "Stamping press", 4, 2, [first, second], first);
+        var machine = new Machine(Guid.NewGuid(), "Stamping press", 4, 2, 10, [first, second], first);
         var cycle = new ProductionCycle(machine.SelectedSchematic);
 
         machine.SelectSchematic(second);

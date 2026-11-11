@@ -11,7 +11,7 @@ public class MachineTests
     {
         var first = CreateSchematic("Iron plate");
         var second = CreateSchematic("Copper plate");
-        var machine = new Machine(Guid.NewGuid(), "Stamping press", 4, 2, [first, second], first);
+        var machine = new Machine(Guid.NewGuid(), "Stamping press", 4, 2, 10, [first, second], first);
 
         Assert.Equal("Stamping press", machine.Name);
         Assert.Equal(4, machine.RequiredPower);
@@ -19,13 +19,74 @@ public class MachineTests
         Assert.Equal([first, second], machine.SupportedSchematics);
         Assert.Same(first, machine.SelectedSchematic);
         Assert.False(machine.IsEnabled);
+        Assert.Null(machine.ActiveCycle);
+        Assert.Equal(10, machine.OutputBuffer.Capacity);
+    }
+
+    [Fact]
+    public void CreatesMachineWithoutAnActiveProductionCycle()
+    {
+        var machine = CreateMachine();
+
+        Assert.Null(machine.ActiveCycle);
+    }
+
+    [Fact]
+    public void CreatesMachineWithAnOutputBufferUsingTheConfiguredCapacity()
+    {
+        var machine = CreateMachine(outputBufferCapacity: 7);
+
+        Assert.NotNull(machine.OutputBuffer);
+        Assert.Equal(7, machine.OutputBuffer.Capacity);
+    }
+
+    [Fact]
+    public void CreatesIndependentOutputBuffersForEachMachine()
+    {
+        var firstMachine = CreateMachine();
+        var secondMachine = CreateMachine();
+
+        Assert.NotSame(firstMachine.OutputBuffer, secondMachine.OutputBuffer);
+        Assert.True(firstMachine.OutputBuffer.TryReserve(1));
+        Assert.Equal(1, firstMachine.OutputBuffer.ReservedQuantity);
+        Assert.Equal(0, secondMachine.OutputBuffer.ReservedQuantity);
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-1)]
+    public void RejectsNonPositiveOutputBufferCapacity(int outputBufferCapacity)
+    {
+        var schematic = CreateSchematic();
+
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            new Machine(
+                Guid.NewGuid(),
+                "Stamping press",
+                4,
+                2,
+                outputBufferCapacity,
+                [schematic],
+                schematic));
+    }
+
+    [Fact]
+    public void ProductionStateReferencesCannotBeReplacedThroughPublicSetters()
+    {
+        var activeCycle = typeof(Machine).GetProperty(nameof(Machine.ActiveCycle));
+        var outputBuffer = typeof(Machine).GetProperty(nameof(Machine.OutputBuffer));
+
+        Assert.NotNull(activeCycle);
+        Assert.NotNull(outputBuffer);
+        Assert.False(activeCycle.SetMethod!.IsPublic);
+        Assert.Null(outputBuffer.SetMethod);
     }
 
     [Fact]
     public void RejectsAnEmptyMachineId()
     {
         Assert.Throws<ArgumentException>(() =>
-            new Machine(Guid.Empty, "Stamping press", 4, 2, [CreateSchematic()], CreateSchematic()));
+            new Machine(Guid.Empty, "Stamping press", 4, 2, 10, [CreateSchematic()], CreateSchematic()));
     }
 
     [Theory]
@@ -36,7 +97,7 @@ public class MachineTests
         var schematic = CreateSchematic();
 
         Assert.Throws<ArgumentException>(() =>
-            new Machine(Guid.NewGuid(), name, 4, 2, [schematic], schematic));
+            new Machine(Guid.NewGuid(), name, 4, 2, 10, [schematic], schematic));
     }
 
     [Theory]
@@ -47,7 +108,7 @@ public class MachineTests
         var schematic = CreateSchematic();
 
         Assert.Throws<ArgumentOutOfRangeException>(() =>
-            new Machine(Guid.NewGuid(), "Stamping press", requiredPower, 2, [schematic], schematic));
+            new Machine(Guid.NewGuid(), "Stamping press", requiredPower, 2, 10, [schematic], schematic));
     }
 
     [Theory]
@@ -58,7 +119,7 @@ public class MachineTests
         var schematic = CreateSchematic();
 
         Assert.Throws<ArgumentOutOfRangeException>(() =>
-            new Machine(Guid.NewGuid(), "Stamping press", 4, requiredCrew, [schematic], schematic));
+            new Machine(Guid.NewGuid(), "Stamping press", 4, requiredCrew, 10, [schematic], schematic));
     }
 
     [Fact]
@@ -67,7 +128,7 @@ public class MachineTests
         var schematic = CreateSchematic();
 
         Assert.Throws<ArgumentNullException>(() =>
-            new Machine(Guid.NewGuid(), "Stamping press", 4, 2, null!, schematic));
+            new Machine(Guid.NewGuid(), "Stamping press", 4, 2, 10, null!, schematic));
     }
 
     [Fact]
@@ -76,7 +137,7 @@ public class MachineTests
         var schematic = CreateSchematic();
 
         Assert.Throws<ArgumentException>(() =>
-            new Machine(Guid.NewGuid(), "Stamping press", 4, 2, Array.Empty<Schematic>(), schematic));
+            new Machine(Guid.NewGuid(), "Stamping press", 4, 2, 10, Array.Empty<Schematic>(), schematic));
     }
 
     [Fact]
@@ -90,6 +151,7 @@ public class MachineTests
                 "Stamping press",
                 4,
                 2,
+                10,
                 new List<Schematic> { schematic, null! },
                 schematic));
     }
@@ -100,7 +162,7 @@ public class MachineTests
         var schematic = CreateSchematic();
 
         Assert.Throws<ArgumentNullException>(() =>
-            new Machine(Guid.NewGuid(), "Stamping press", 4, 2, [schematic], null!));
+            new Machine(Guid.NewGuid(), "Stamping press", 4, 2, 10, [schematic], null!));
     }
 
     [Fact]
@@ -114,6 +176,7 @@ public class MachineTests
                 "Stamping press",
                 4,
                 2,
+                10,
                 [supported],
                 CreateSchematic("Copper plate")));
     }
@@ -124,7 +187,7 @@ public class MachineTests
         var first = CreateSchematic("Iron plate");
         var second = CreateSchematic("Copper plate");
         var supportedSchematics = new List<Schematic> { first };
-        var machine = new Machine(Guid.NewGuid(), "Stamping press", 4, 2, supportedSchematics, first);
+        var machine = new Machine(Guid.NewGuid(), "Stamping press", 4, 2, 10, supportedSchematics, first);
 
         supportedSchematics.Clear();
         supportedSchematics.Add(second);
@@ -155,7 +218,7 @@ public class MachineTests
     {
         var first = CreateSchematic("Iron plate");
         var second = CreateSchematic("Copper plate");
-        var machine = new Machine(Guid.NewGuid(), "Stamping press", 4, 2, [first, second], first);
+        var machine = new Machine(Guid.NewGuid(), "Stamping press", 4, 2, 10, [first, second], first);
 
         machine.SelectSchematic(second);
 
@@ -184,10 +247,17 @@ public class MachineTests
         Assert.Same(initialSelection, machine.SelectedSchematic);
     }
 
-    private static Machine CreateMachine()
+    private static Machine CreateMachine(int outputBufferCapacity = 10)
     {
         var schematic = CreateSchematic();
-        return new Machine(Guid.NewGuid(), "Stamping press", 4, 2, [schematic], schematic);
+        return new Machine(
+            Guid.NewGuid(),
+            "Stamping press",
+            4,
+            2,
+            outputBufferCapacity,
+            [schematic],
+            schematic);
     }
 
     private static Schematic CreateSchematic(string name = "Iron plate") =>
