@@ -91,4 +91,32 @@ public sealed class ProductionCoordinator
 
 
     }
+
+    public bool TryAssignWorker(
+        Guid machineId,
+        Guid workerId,
+        Workforce workforce
+    )
+    {
+        ArgumentNullException.ThrowIfNull(workforce);
+        Machine? machine = GetMachine(machineId);
+
+        if (machine is null)
+        {
+            return false;
+        }
+
+        string workstationId = machine.Id.ToString();
+
+        int assignedCount = workforce.Assignments.Count(
+            assignment => assignment.WorkstationId == workstationId
+        );
+
+        if (assignedCount >= machine.RequiredCrew)
+        {
+            return false;
+        }
+
+        return workforce.TryAssign(workerId, workstationId);
+    }
 }
