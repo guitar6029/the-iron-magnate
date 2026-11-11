@@ -119,4 +119,21 @@ public sealed class ProductionCoordinator
 
         return workforce.TryAssign(workerId, workstationId);
     }
+
+    public int FillEnabledMachines(Workforce workforce)
+    {
+        ArgumentNullException.ThrowIfNull(workforce);
+
+        int totalAssigned = 0;
+
+        foreach (var machine in machines.Values.OrderBy(m => m.Id))
+        {
+            if (!machine.IsEnabled)
+                continue;
+
+            totalAssigned += FillCrew(machine.Id, workforce);
+        }
+
+        return totalAssigned;
+    }
 }
